@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-warm-50: #FEFCF9;
+  --color-warm-100: #F5F0EA;
+  --color-warm-200: #EDE8E3;
+  --color-warm-300: #E0D9D1;
+  --color-warm-400: #C8BDB3;
+  --color-warm-500: #A89080;
+  --color-warm-600: #8C7262;
+  --color-warm-700: #6E5646;
+  --color-warm-800: #4A3728;
+  --color-warm-900: #2D1F14;
+
+  --color-accent: #A0856C;
+  --color-accent-hover: #8C7262;
+  --color-accent-light: #F0E8E0;
+
+  --color-bubble-in: #F0ECEB;
+  --color-bubble-out: #E8DED5;
+
+  --color-online: #8BAF7E;
+  --color-offline: #A9A9A9;
+
+  --color-text-primary: #2D2D2D;
+  --color-text-secondary: #8A8A8A;
+  --color-text-muted: #B0A8A0;
+
+  --color-border: #E8E4DE;
+  --color-border-light: #F0EDE8;
+
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #FEFCF9;
+  color: #2D2D2D;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E0D9D1;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C8BDB3;
+}
