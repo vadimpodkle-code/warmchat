@@ -50,9 +50,18 @@ export function useMessages(conversationId: string | null, currentUserId: string
           event: 'INSERT',
           schema: 'public',
           table: 'message_reads',
-          filter: `conversation_id=eq.${conversationId}`,
         },
-        () => { fetchMessages() }
+        (payload) => {
+          // Check if this read receipt is for a message in our conversation
+          const messageId = payload.new?.message_id
+          if (messageId) {
+            setMessages(prev => {
+              const isRelevant = prev.some(m => m.id === messageId)
+              if (isRelevant) fetchMessages()
+              return prev
+            })
+          }
+        }
       )
       .subscribe()
 

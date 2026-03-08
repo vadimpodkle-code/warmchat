@@ -81,9 +81,10 @@ CREATE POLICY "Users can insert their own profile" ON public.profiles
 CREATE POLICY "Users can update their own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
 
--- Conversations: только участники видят свои переписки
+-- Conversations: создатель или участники видят переписки
 CREATE POLICY "Members can view their conversations" ON public.conversations
   FOR SELECT USING (
+    created_by = auth.uid() OR
     id IN (
       SELECT conversation_id FROM public.conversation_members WHERE user_id = auth.uid()
     )

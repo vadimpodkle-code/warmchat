@@ -47,52 +47,68 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
 
   async function createDirectChat(user: Profile) {
     setLoading(true)
-    // Check if conversation already exists
-    const { data: existing } = await supabase
-      .from('conversation_members')
-      .select('conversation_id')
-      .eq('user_id', currentUserId)
-
-    if (existing?.length) {
-      const myConvIds = existing.map(r => r.conversation_id)
-      const { data: theirs } = await supabase
+    try {
+      // Check if conversation already exists
+      const { data: existing } = await supabase
         .from('conversation_members')
         .select('conversation_id')
-        .eq('user_id', user.id)
-        .in('conversation_id', myConvIds)
+        .eq('user_id', currentUserId)
 
-      if (theirs?.length) {
-        // Check if it's a direct chat
-        for (const row of theirs) {
-          const { data: conv } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('id', row.conversation_id)
-            .eq('type', 'direct')
-            .single()
-          if (conv) {
-            onConversationCreated(conv.id)
-            return
+      if (existing?.length) {
+        const myConvIds = existing.map(r => r.conversation_id)
+        const { data: theirs } = await supabase
+          .from('conversation_members')
+          .select('conversation_id')
+          .eq('user_id', user.id)
+          .in('conversation_id', myConvIds)
+
+        if (theirs?.length) {
+          for (const row of theirs) {
+            const { data: conv } = await supabase
+              .from('conversations')
+              .select('*')
+              .eq('id', row.conversation_id)
+              .eq('type', 'direct')
+              .single()
+            if (conv) {
+              onConversationCreated(conv.id)
+              return
+            }
           }
         }
       }
-    }
 
-    // Create new direct conversation
-    const { data: conv } = await supabase
-      .from('conversations')
-      .insert({ type: 'direct', created_by: currentUserId })
-      .select()
-      .single()
+      // Create new direct conversation
+      const { data: conv, error: convError } = await supabase
+        .from('conversations')
+        .insert({ type: 'direct', created_by: currentUserId })
+        .select()
+        .single()
 
-    if (conv) {
-      await supabase.from('conversation_members').insert([
-        { conversation_id: conv.id, user_id: currentUserId, is_admin: false },
-        { conversation_id: conv.id, user_id: user.id, is_admin: false },
-      ])
+      if (convError || !conv) {
+        console.error('Failed to create conversation:', convError)
+        return
+      }
+
+      // Add both users as members
+      const { error: membersError } = await supabase
+        .from('conversation_members')
+        .insert([
+          { conversation_id: conv.id, user_id: currentUserId, is_admin: false },
+          { conversation_id: conv.id, user_id: user.id, is_admin: false },
+        ])
+
+      if (membersError) {
+        console.error('Failed to add members:', membersError)
+        return
+      }
+
       onConversationCreated(conv.id)
+    } catch (err) {
+      console.error('Error creating direct chat:', err)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   async function createGroupChat() {
@@ -225,8 +241,9 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
                   return (
                     <button
                       key={user.id}
+                      disabled={loading}
                       onClick={() => mode === 'direct' ? createDirectChat(user) : toggleUser(user)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#F5F0EA] transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#F5F0EA] transition-colors text-left disabled:opacity-50"
                     >
                       <Avatar
                         src={user.avatar_url}
