@@ -21,7 +21,11 @@ export function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setError('Неверный email или пароль')
+      if (error.message.includes('Email not confirmed')) {
+        setError('Email не подтверждён. Проверьте почту и нажмите ссылку из письма')
+      } else {
+        setError('Неверный email или пароль')
+      }
       setLoading(false)
     } else {
       navigate('/app')

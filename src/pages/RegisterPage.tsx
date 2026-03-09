@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Mail, Lock, User, MessageCircle } from 'lucide-react'
+import { Mail, Lock, User, MessageCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 export function RegisterPage() {
-  const navigate = useNavigate()
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -17,6 +16,7 @@ export function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [emailSent, setEmailSent] = useState(false)
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -40,30 +40,96 @@ export function RegisterPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
+      options: {
+        data: {
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+        }
+      }
     })
 
-    if (signUpError || !data.user) {
-      setError(signUpError?.message ?? 'Ошибка регистрации')
+    if (signUpError) {
+      if (signUpError.message.includes('already registered') || signUpError.message.includes('already been registered')) {
+        setError('Этот email уже зарегистрирован')
+      } else {
+        setError('Ошибка регистрации. Попробуйте ещё раз')
+      }
       setLoading(false)
       return
     }
 
-    // Create profile
-    const { error: profileError } = await supabase.from('profiles').insert({
-      id: data.user.id,
-      first_name: form.firstName.trim(),
-      last_name: form.lastName.trim(),
-      avatar_url: null,
-      is_online: true,
-    })
-
-    if (profileError) {
-      setError('Ошибка создания профиля')
+    if (!data.user) {
+      setError('Ошибка регистрации. Попробуйте ещё раз')
       setLoading(false)
       return
     }
 
-    navigate('/app')
+    // If session exists — email confirmation is disabled, create profile and go to app
+    if (data.session) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        avatar_url: null,
+        is_online: true,
+      })
+
+      if (profileError) {
+        setError('Ошибка создания профиля')
+        setLoading(false)
+        return
+      }
+
+      window.location.href = '/app'
+      return
+    }
+
+    // No session — email confirmation required
+    // Profile will be created after email confirmation via a trigger or on first login
+    // Store name in user metadata (already done above via options.data)
+    setEmailSent(true)
+    setLoading(false)
+  }
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-[#FEFCF9] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="w-full max-w-sm text-center"
+        >
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-[#8BAF7E] flex items-center justify-center mb-3 shadow-md">
+              <CheckCircle size={28} className="text-white" />
+            </div>
+            <h1 className="text-2xl font-semibold text-[#2D2D2D]">Проверьте почту</h1>
+            <p className="text-sm text-[#8A8A8A] mt-1">Почти готово!</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-[#E8E4DE] p-6 shadow-sm">
+            <p className="text-sm text-[#4A4A4A] leading-relaxed">
+              Мы отправили письмо на <br />
+              <span className="font-semibold text-[#2D2D2D]">{form.email}</span>
+            </p>
+            <p className="text-sm text-[#8A8A8A] mt-3 leading-relaxed">
+              Нажмите на ссылку в письме, чтобы подтвердить аккаунт и войти в WarmChat.
+            </p>
+            <p className="text-xs text-[#B0A8A0] mt-4">
+              Не нашли письмо? Проверьте папку «Спам»
+            </p>
+          </div>
+
+          <p className="text-center text-sm text-[#8A8A8A] mt-5">
+            Уже подтвердили?{' '}
+            <Link to="/login" className="text-[#A0856C] font-medium hover:underline">
+              Войти
+            </Link>
+          </p>
+        </motion.div>
+      </div>
+    )
   }
 
   return (
