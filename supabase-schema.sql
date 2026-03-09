@@ -8,10 +8,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
+  username TEXT UNIQUE,
   avatar_url TEXT,
   is_online BOOLEAN DEFAULT false,
   last_seen TIMESTAMPTZ DEFAULT now(),
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT username_format CHECK (username IS NULL OR username ~ '^[a-z0-9_]{3,30}$')
 );
 
 -- 2. Переписки
@@ -61,6 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON public.messages(conve
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON public.messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_conv_members_user_id ON public.conversation_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_message_reads_message_id ON public.message_reads(message_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
 
 -- =============================================
 -- ROW LEVEL SECURITY (защита данных)
@@ -93,9 +96,13 @@ CREATE POLICY "Members can view their conversations" ON public.conversations
 CREATE POLICY "Authenticated users can create conversations" ON public.conversations
   FOR INSERT WITH CHECK (auth.uid() = created_by);
 
--- Conversation members
+-- Conversation members (creator bypass для избежания circular dependency)
 CREATE POLICY "Members can view conversation members" ON public.conversation_members
   FOR SELECT USING (
+    conversation_id IN (
+      SELECT id FROM public.conversations WHERE created_by = auth.uid()
+    )
+    OR
     conversation_id IN (
       SELECT conversation_id FROM public.conversation_members WHERE user_id = auth.uid()
     )
@@ -160,3 +167,29 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.message_reads;
 --   FOR INSERT WITH CHECK (bucket_id = 'chat-images' AND auth.role() = 'authenticated');
 -- CREATE POLICY "Images are publicly accessible" ON storage.objects
 --   FOR SELECT USING (bucket_id = 'chat-images');
+
+-- =============================================
+-- ТРИГГЕР: автоматическое создание профиля
+-- =============================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $func$
+BEGIN
+  INSERT INTO public.profiles (id, first_name, last_name, avatar_url, is_online, username)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'first_name', 'Пользователь'),
+    COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
+    NULL,
+    false,
+    NULL
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Триггер на создание пользователя
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

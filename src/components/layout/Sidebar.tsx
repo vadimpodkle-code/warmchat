@@ -59,7 +59,9 @@ export function Sidebar({
                 <p className="text-sm font-semibold text-[#2D2D2D] group-hover:text-[#A0856C] transition-colors">
                   {currentUser.first_name} {currentUser.last_name}
                 </p>
-                <p className="text-[11px] text-[#8BAF7E]">в сети</p>
+                <p className="text-[11px] text-[#8BAF7E]">
+                  {currentUser.username ? `@${currentUser.username}` : 'в сети'}
+                </p>
               </div>
             </button>
 
@@ -190,6 +192,9 @@ export function Sidebar({
                   <p className="text-lg font-semibold text-[#2D2D2D]">
                     {currentUser.first_name} {currentUser.last_name}
                   </p>
+                  {currentUser.username && (
+                    <p className="text-sm text-[#A0856C] mt-0.5">@{currentUser.username}</p>
+                  )}
                   <p className="text-sm text-[#8BAF7E] mt-1">в сети</p>
                 </div>
                 <div className="w-full rounded-xl bg-[#F5F0EA] px-4 py-3">

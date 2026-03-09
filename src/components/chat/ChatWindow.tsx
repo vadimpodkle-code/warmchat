@@ -97,7 +97,12 @@ export function ChatWindow({ conversation, currentUserId, onBack }: ChatWindowPr
         )}
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[#2D2D2D] truncate">{displayName}</p>
+          <div className="flex items-baseline gap-1.5">
+            <p className="text-sm font-semibold text-[#2D2D2D] truncate">{displayName}</p>
+            {!isGroup && otherMember?.username && (
+              <span className="text-[11px] text-[#A0856C] flex-shrink-0">@{otherMember.username}</span>
+            )}
+          </div>
           <AnimatePresence mode="wait">
             {typingUsers.length > 0 ? (
               <motion.p

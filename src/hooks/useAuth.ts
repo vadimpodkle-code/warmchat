@@ -56,5 +56,38 @@ export function useAuth() {
     await supabase.auth.signOut()
   }
 
-  return { user, profile, loading, signOut, fetchProfile: () => user && fetchProfile(user.id) }
+  const needsUsername = profile !== null && profile.username === null
+
+  async function updateUsername(username: string): Promise<{ error: string | null }> {
+    if (!user) return { error: 'Не авторизован' }
+
+    const normalized = username.toLowerCase().replace(/^@/, '').trim()
+
+    if (!/^[a-z0-9_]{3,30}$/.test(normalized)) {
+      return { error: 'Username: 3-30 символов, только a-z, 0-9, _' }
+    }
+
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', normalized)
+      .neq('id', user.id)
+      .maybeSingle()
+
+    if (existing) {
+      return { error: 'Этот username уже занят' }
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ username: normalized })
+      .eq('id', user.id)
+
+    if (error) return { error: error.message }
+
+    await fetchProfile(user.id)
+    return { error: null }
+  }
+
+  return { user, profile, loading, signOut, fetchProfile: () => user && fetchProfile(user.id), needsUsername, updateUsername }
 }

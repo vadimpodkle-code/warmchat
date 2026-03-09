@@ -20,6 +20,7 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
   const [selected, setSelected] = useState<Profile[]>([])
   const [groupName, setGroupName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (search.length < 1) { setUsers([]); return }
@@ -28,13 +29,26 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
   }, [search])
 
   async function searchUsers() {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .neq('id', currentUserId)
-      .or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%`)
-      .limit(20)
-    setUsers(data ?? [])
+    const query = search.trim()
+    if (query.startsWith('@')) {
+      const usernameQuery = query.slice(1).toLowerCase()
+      if (!usernameQuery) { setUsers([]); return }
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', currentUserId)
+        .ilike('username', `${usernameQuery}%`)
+        .limit(20)
+      setUsers(data ?? [])
+    } else {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', currentUserId)
+        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,username.ilike.%${query}%`)
+        .limit(20)
+      setUsers(data ?? [])
+    }
   }
 
   function toggleUser(user: Profile) {
@@ -47,6 +61,7 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
 
   async function createDirectChat(user: Profile) {
     setLoading(true)
+    setError('')
     try {
       // Check if conversation already exists
       const { data: existing } = await supabase
@@ -87,6 +102,7 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
 
       if (convError || !conv) {
         console.error('Failed to create conversation:', convError)
+        setError('Не удалось создать чат. Попробуйте ещё раз.')
         return
       }
 
@@ -100,12 +116,14 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
 
       if (membersError) {
         console.error('Failed to add members:', membersError)
+        setError('Не удалось добавить участников. Попробуйте ещё раз.')
         return
       }
 
       onConversationCreated(conv.id)
     } catch (err) {
       console.error('Error creating direct chat:', err)
+      setError('Произошла ошибка. Попробуйте ещё раз.')
     } finally {
       setLoading(false)
     }
@@ -222,12 +240,22 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
 
               <div className="px-4 pt-3 pb-2">
                 <Input
-                  placeholder="Поиск по имени..."
+                  placeholder="Поиск по @username или имени..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   leftIcon={<Search size={16} />}
                 />
               </div>
+
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2 mx-4 mb-2"
+                >
+                  {error}
+                </motion.p>
+              )}
 
               <div className="max-h-64 overflow-y-auto px-2 pb-2">
                 {users.length === 0 && search.length > 0 && (
@@ -258,7 +286,7 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
                           {user.first_name} {user.last_name}
                         </p>
                         <p className="text-xs text-[#8A8A8A]">
-                          {user.is_online ? 'в сети' : 'не в сети'}
+                          {user.username ? `@${user.username}` : (user.is_online ? 'в сети' : 'не в сети')}
                         </p>
                       </div>
                       {mode === 'group' && isSelected && (

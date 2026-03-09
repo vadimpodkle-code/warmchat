@@ -6,11 +6,12 @@ import { usePresence } from '@/hooks/usePresence'
 import { useConversations } from '@/hooks/useConversations'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { ChatWindow } from '@/components/chat/ChatWindow'
+import { SetupUsernamePage } from '@/pages/SetupUsernamePage'
 import { supabase } from '@/lib/supabase'
 import type { Conversation } from '@/types'
 
 export function AppPage() {
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, needsUsername, fetchProfile } = useAuth()
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
 
@@ -65,6 +66,10 @@ export function AppPage() {
         <div className="w-8 h-8 border-2 border-[#E8E4DE] border-t-[#A0856C] rounded-full animate-spin" />
       </div>
     )
+  }
+
+  if (needsUsername && user) {
+    return <SetupUsernamePage userId={user.id} onComplete={() => fetchProfile()} />
   }
 
   return (

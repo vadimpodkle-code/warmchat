@@ -2,6 +2,7 @@ export interface Profile {
   id: string
   first_name: string
   last_name: string
+  username: string | null
   avatar_url: string | null
   is_online: boolean
   last_seen: string
