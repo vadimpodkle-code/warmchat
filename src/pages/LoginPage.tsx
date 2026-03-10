@@ -33,7 +33,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FEFCF9] flex items-center justify-center p-4">
+    <div className="h-full bg-[#FEFCF9] overflow-y-auto flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
