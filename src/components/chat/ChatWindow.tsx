@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { ArrowLeft, MoreVertical, Phone, Search } from 'lucide-react'
 import { useMessages } from '@/hooks/useMessages'
@@ -20,6 +20,8 @@ export function ChatWindow({ conversation, currentUserId, onBack }: ChatWindowPr
   const { messages, loading, sendMessage, sendFile } = useMessages(conversation.id, currentUserId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [typingUsers, setTypingUsers] = useState<string[]>([])
+  // Track per-user timeouts to avoid leaks when switching chats
+  const typingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   const isGroup = conversation.type === 'group'
   const otherMember = !isGroup
@@ -32,9 +34,13 @@ export function ChatWindow({ conversation, currentUserId, onBack }: ChatWindowPr
 
   const memberIds = conversation.members?.map(m => m.user_id) ?? []
 
-  // Auto scroll to bottom
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior })
+  }, [])
+
+  // Auto scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    scrollToBottom('smooth')
   }, [messages])
 
   // Subscribe to typing events
@@ -44,19 +50,33 @@ export function ChatWindow({ conversation, currentUserId, onBack }: ChatWindowPr
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
         const { userId, typing } = payload as { userId: string; typing: boolean }
         if (userId === currentUserId) return
-        setTypingUsers(prev =>
-          typing ? [...new Set([...prev, userId])] : prev.filter(id => id !== userId)
-        )
-        // Auto clear after 3s
+
+        // Clear any existing timeout for this user
+        const existing = typingTimeoutsRef.current.get(userId)
+        if (existing) clearTimeout(existing)
+
         if (typing) {
-          setTimeout(() => {
+          setTypingUsers(prev => [...new Set([...prev, userId])])
+          // Auto-clear after 3s in case stop event is missed
+          const timeout = setTimeout(() => {
             setTypingUsers(prev => prev.filter(id => id !== userId))
+            typingTimeoutsRef.current.delete(userId)
           }, 3000)
+          typingTimeoutsRef.current.set(userId, timeout)
+        } else {
+          typingTimeoutsRef.current.delete(userId)
+          setTypingUsers(prev => prev.filter(id => id !== userId))
         }
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+      // Clear all typing timeouts on unmount/conversation change
+      typingTimeoutsRef.current.forEach(t => clearTimeout(t))
+      typingTimeoutsRef.current.clear()
+      setTypingUsers([])
+    }
   }, [conversation.id, currentUserId])
 
   function getSubtitle() {
@@ -185,6 +205,7 @@ export function ChatWindow({ conversation, currentUserId, onBack }: ChatWindowPr
         currentUserId={currentUserId}
         onSend={sendMessage}
         onSendFile={sendFile}
+        onResize={() => scrollToBottom('instant')}
       />
     </div>
   )

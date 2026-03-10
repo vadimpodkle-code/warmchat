@@ -13,12 +13,10 @@ export function useMessages(conversationId: string | null, currentUserId: string
     setLoading(true)
     fetchMessages()
 
-    // Cleanup previous channel
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current)
     }
 
-    // Subscribe to new messages in this conversation
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -36,8 +34,11 @@ export function useMessages(conversationId: string | null, currentUserId: string
             .eq('id', payload.new.id)
             .single()
           if (data) {
-            setMessages(prev => [...prev, data as Message])
-            // Mark as read if not our message
+            setMessages(prev => {
+              // Deduplicate: message may already be in state from sendMessage()
+              if (prev.some(m => m.id === (data as Message).id)) return prev
+              return [...prev, data as Message]
+            })
             if (data.sender_id !== currentUserId) {
               markAsRead(data.id, currentUserId)
             }
@@ -52,14 +53,16 @@ export function useMessages(conversationId: string | null, currentUserId: string
           table: 'message_reads',
         },
         (payload) => {
-          // Check if this read receipt is for a message in our conversation
           const messageId = payload.new?.message_id
           if (messageId) {
-            setMessages(prev => {
-              const isRelevant = prev.some(m => m.id === messageId)
-              if (isRelevant) fetchMessages()
-              return prev
-            })
+            // Update read status in-place — no need to re-fetch all messages
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === messageId
+                  ? { ...m, reads: [...(m.reads ?? []), payload.new] }
+                  : m
+              )
+            )
           }
         }
       )
@@ -82,7 +85,6 @@ export function useMessages(conversationId: string | null, currentUserId: string
 
     if (data) {
       setMessages(data as Message[])
-      // Mark all unread messages as read
       if (currentUserId) {
         const unread = data.filter(
           m => m.sender_id !== currentUserId &&
@@ -117,6 +119,8 @@ export function useMessages(conversationId: string | null, currentUserId: string
       .select('*, sender:profiles!messages_sender_id_fkey(*), reads:message_reads(*)')
       .single()
     if (data) {
+      // Optimistic: add immediately for instant feedback
+      // The realtime subscription will deduplicate if it fires
       setMessages(prev => [...prev, data as Message])
     }
   }

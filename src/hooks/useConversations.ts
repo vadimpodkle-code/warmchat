@@ -10,12 +10,18 @@ export function useConversations(userId: string | undefined) {
     if (!userId) return
     fetchConversations()
 
-    // Subscribe to new messages to update conversation list
     const channel = supabase
       .channel('conversations-updates')
+      // New message → update last message + unread count
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => { fetchConversations() }
+      )
+      // Added to a new conversation → show it in sidebar immediately
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'conversation_members', filter: `user_id=eq.${userId}` },
         () => { fetchConversations() }
       )
       .subscribe()

@@ -236,15 +236,17 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
                   <Search size={15} className="ml-3 text-[#B0A8A0] flex-shrink-0" />
                   <span className="ml-2 text-sm font-medium text-[#A0856C] select-none flex-shrink-0">@</span>
                   <input
-                    type="search"
+                    type="text"
                     placeholder="username..."
                     value={search}
                     onChange={e => setSearch(e.target.value.replace(/^@/, '').toLowerCase())}
-                    autoComplete="off"
+                    autoComplete="new-password"
                     autoCorrect="off"
                     autoCapitalize="none"
                     spellCheck={false}
-                    className="flex-1 py-2.5 pr-3 text-sm text-[#2D2D2D] placeholder:text-[#B0A8A0] bg-transparent focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+                    data-form-type="other"
+                    data-lpignore="true"
+                    className="flex-1 py-2.5 pr-3 text-sm text-[#2D2D2D] placeholder:text-[#B0A8A0] bg-transparent focus:outline-none"
                   />
                 </div>
               </div>
