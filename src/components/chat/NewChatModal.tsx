@@ -29,26 +29,16 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
   }, [search])
 
   async function searchUsers() {
-    const query = search.trim()
-    if (query.startsWith('@')) {
-      const usernameQuery = query.slice(1).toLowerCase()
-      if (!usernameQuery) { setUsers([]); return }
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', currentUserId)
-        .ilike('username', `${usernameQuery}%`)
-        .limit(20)
-      setUsers(data ?? [])
-    } else {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', currentUserId)
-        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,username.ilike.%${query}%`)
-        .limit(20)
-      setUsers(data ?? [])
-    }
+    const query = search.trim().toLowerCase()
+    if (!query) { setUsers([]); return }
+    // Поиск только по username
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .neq('id', currentUserId)
+      .ilike('username', `${query}%`)
+      .limit(20)
+    setUsers(data ?? [])
   }
 
   function toggleUser(user: Profile) {
@@ -242,15 +232,21 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
               )}
 
               <div className="px-4 pt-3 pb-2">
-                <Input
-                  placeholder="Поиск по @username или имени..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  leftIcon={<Search size={16} />}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
+                <div className="flex items-center rounded-xl border border-[#E8E4DE] bg-white focus-within:ring-2 focus-within:ring-[#A0856C]/40 focus-within:border-[#A0856C] transition-all">
+                  <Search size={15} className="ml-3 text-[#B0A8A0] flex-shrink-0" />
+                  <span className="ml-2 text-sm font-medium text-[#A0856C] select-none flex-shrink-0">@</span>
+                  <input
+                    type="search"
+                    placeholder="username..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value.replace(/^@/, '').toLowerCase())}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    className="flex-1 py-2.5 pr-3 text-sm text-[#2D2D2D] placeholder:text-[#B0A8A0] bg-transparent focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+                  />
+                </div>
               </div>
 
               {error && (
@@ -268,7 +264,7 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
                   <p className="text-center text-sm text-[#8A8A8A] py-8">Никого не найдено</p>
                 )}
                 {users.length === 0 && search.length === 0 && (
-                  <p className="text-center text-sm text-[#B0A8A0] py-8">Введите имя для поиска</p>
+                  <p className="text-center text-sm text-[#B0A8A0] py-8">Введите username для поиска</p>
                 )}
                 {users.map(user => {
                   const isSelected = selected.some(u => u.id === user.id)

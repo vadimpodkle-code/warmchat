@@ -32,7 +32,7 @@ export function useMessages(conversationId: string | null, currentUserId: string
         async (payload) => {
           const { data } = await supabase
             .from('messages')
-            .select('*, sender:profiles(*), reads:message_reads(*)')
+            .select('*, sender:profiles!messages_sender_id_fkey(*), reads:message_reads(*)')
             .eq('id', payload.new.id)
             .single()
           if (data) {
@@ -76,7 +76,7 @@ export function useMessages(conversationId: string | null, currentUserId: string
     if (!conversationId) return
     const { data } = await supabase
       .from('messages')
-      .select('*, sender:profiles(*), reads:message_reads(*)')
+      .select('*, sender:profiles!messages_sender_id_fkey(*), reads:message_reads(*)')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
 
@@ -114,7 +114,7 @@ export function useMessages(conversationId: string | null, currentUserId: string
         file_type: null,
         file_name: null,
       })
-      .select('*, sender:profiles(*), reads:message_reads(*)')
+      .select('*, sender:profiles!messages_sender_id_fkey(*), reads:message_reads(*)')
       .single()
     if (data) {
       setMessages(prev => [...prev, data as Message])
@@ -144,7 +144,7 @@ export function useMessages(conversationId: string | null, currentUserId: string
         file_type: isImage ? 'image' : 'file',
         file_name: file.name,
       })
-      .select('*, sender:profiles(*), reads:message_reads(*)')
+      .select('*, sender:profiles!messages_sender_id_fkey(*), reads:message_reads(*)')
       .single()
 
     if (data) {

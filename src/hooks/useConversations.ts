@@ -56,29 +56,47 @@ export function useConversations(userId: string | undefined) {
       return
     }
 
+    // Fetch all read message IDs for this user once (outside loop)
+    const { data: readsData } = await supabase
+      .from('message_reads')
+      .select('message_id')
+      .eq('user_id', userId)
+
+    const readIds: string[] = readsData?.map(r => r.message_id) ?? []
+
     // Fetch last message for each conversation
     const convsWithLastMsg = await Promise.all(
       convs.map(async (conv) => {
         const { data: msgs } = await supabase
           .from('messages')
-          .select('*, sender:profiles(*)')
+          .select('*, sender:profiles!messages_sender_id_fkey(*)')
           .eq('conversation_id', conv.id)
           .order('created_at', { ascending: false })
           .limit(1)
 
-        const { count } = await supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('conversation_id', conv.id)
-          .not('sender_id', 'eq', userId)
-          .not('id', 'in', `(
-            select message_id from message_reads where user_id = '${userId}'
-          )`)
+        // Count unread: messages not sent by me that I haven't read
+        let unreadCount = 0
+        if (readIds.length > 0) {
+          const { count } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('conversation_id', conv.id)
+            .neq('sender_id', userId)
+            .not('id', 'in', readIds)
+          unreadCount = count ?? 0
+        } else {
+          const { count } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('conversation_id', conv.id)
+            .neq('sender_id', userId)
+          unreadCount = count ?? 0
+        }
 
         return {
           ...conv,
           last_message: (msgs?.[0] as Message) ?? null,
-          unread_count: count ?? 0,
+          unread_count: unreadCount,
         }
       })
     )
