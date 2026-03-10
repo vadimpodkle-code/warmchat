@@ -45,7 +45,7 @@ export function Sidebar({
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => setShowProfile(true)}
-              className="flex items-center gap-2.5 group"
+              className="flex items-center gap-2.5 group min-w-0 flex-1 overflow-hidden"
             >
               <Avatar
                 src={currentUser.avatar_url}
@@ -55,8 +55,8 @@ export function Sidebar({
                 size="sm"
                 isOnline={true}
               />
-              <div className="text-left">
-                <p className="text-sm font-semibold text-[#2D2D2D] group-hover:text-[#A0856C] transition-colors">
+              <div className="text-left min-w-0">
+                <p className="text-sm font-semibold text-[#2D2D2D] group-hover:text-[#A0856C] transition-colors truncate">
                   {currentUser.first_name} {currentUser.last_name}
                 </p>
                 <p className="text-[11px] text-[#8BAF7E]">
@@ -65,7 +65,7 @@ export function Sidebar({
               </div>
             </button>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 onClick={() => setShowNewChat(true)}
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-[#8A8A8A] hover:bg-[#EDE8E3] hover:text-[#A0856C] transition-all"
@@ -91,6 +91,9 @@ export function Sidebar({
               placeholder="Поиск чатов..."
               value={search}
               onChange={e => setSearch(e.target.value)}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-[#E8E4DE] text-sm text-[#2D2D2D] placeholder:text-[#B0A8A0] focus:outline-none focus:ring-2 focus:ring-[#A0856C]/30 focus:border-[#A0856C] transition-all"
             />
             {search && (

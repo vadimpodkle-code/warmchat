@@ -218,6 +218,9 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
                     placeholder="Название группы"
                     value={groupName}
                     onChange={e => setGroupName(e.target.value)}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
                 </div>
               )}
@@ -244,6 +247,9 @@ export function NewChatModal({ currentUserId, onClose, onConversationCreated }: 
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   leftIcon={<Search size={16} />}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
               </div>
 

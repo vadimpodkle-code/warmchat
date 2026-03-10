@@ -84,28 +84,30 @@ CREATE POLICY "Users can insert their own profile" ON public.profiles
 CREATE POLICY "Users can update their own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
 
+-- SECURITY DEFINER функция для разрыва RLS circular dependency.
+-- Возвращает все conversation_id текущего пользователя (как участник + как создатель).
+-- SECURITY DEFINER = выполняется без RLS, разрывая цикл.
+CREATE OR REPLACE FUNCTION public.get_my_conversation_ids()
+RETURNS SETOF UUID AS $$
+  SELECT conversation_id FROM public.conversation_members WHERE user_id = auth.uid()
+  UNION
+  SELECT id FROM public.conversations WHERE created_by = auth.uid()
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
 -- Conversations: создатель или участники видят переписки
 CREATE POLICY "Members can view their conversations" ON public.conversations
   FOR SELECT USING (
     created_by = auth.uid() OR
-    id IN (
-      SELECT conversation_id FROM public.conversation_members WHERE user_id = auth.uid()
-    )
+    id IN (SELECT public.get_my_conversation_ids())
   );
 
 CREATE POLICY "Authenticated users can create conversations" ON public.conversations
   FOR INSERT WITH CHECK (auth.uid() = created_by);
 
--- Conversation members (creator bypass для избежания circular dependency)
+-- Conversation members
 CREATE POLICY "Members can view conversation members" ON public.conversation_members
   FOR SELECT USING (
-    conversation_id IN (
-      SELECT id FROM public.conversations WHERE created_by = auth.uid()
-    )
-    OR
-    conversation_id IN (
-      SELECT conversation_id FROM public.conversation_members WHERE user_id = auth.uid()
-    )
+    conversation_id IN (SELECT public.get_my_conversation_ids())
   );
 
 CREATE POLICY "Authenticated users can join conversations" ON public.conversation_members
@@ -118,26 +120,21 @@ CREATE POLICY "Authenticated users can join conversations" ON public.conversatio
 -- Messages: только участники переписки
 CREATE POLICY "Members can view messages" ON public.messages
   FOR SELECT USING (
-    conversation_id IN (
-      SELECT conversation_id FROM public.conversation_members WHERE user_id = auth.uid()
-    )
+    conversation_id IN (SELECT public.get_my_conversation_ids())
   );
 
 CREATE POLICY "Members can send messages" ON public.messages
   FOR INSERT WITH CHECK (
     auth.uid() = sender_id AND
-    conversation_id IN (
-      SELECT conversation_id FROM public.conversation_members WHERE user_id = auth.uid()
-    )
+    conversation_id IN (SELECT public.get_my_conversation_ids())
   );
 
 -- Message reads
 CREATE POLICY "Members can view read statuses" ON public.message_reads
   FOR SELECT USING (
     message_id IN (
-      SELECT m.id FROM public.messages m
-      JOIN public.conversation_members cm ON cm.conversation_id = m.conversation_id
-      WHERE cm.user_id = auth.uid()
+      SELECT id FROM public.messages
+      WHERE conversation_id IN (SELECT public.get_my_conversation_ids())
     )
   );
 
