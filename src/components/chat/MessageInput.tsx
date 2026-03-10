@@ -100,7 +100,7 @@ export function MessageInput({ conversationId, currentUserId, onSend, onSendFile
   const canSend = (text.trim().length > 0 || preview !== null) && !sending
 
   return (
-    <div className="px-4 pt-3 bg-white border-t border-[#E8E4DE] flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+    <div className="px-4 py-3 bg-white border-t border-[#E8E4DE] flex-shrink-0">
       {/* File error */}
       <AnimatePresence>
         {fileError && (

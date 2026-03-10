@@ -159,7 +159,7 @@ export function ChatWindow({ conversation, currentUserId, onBack }: ChatWindowPr
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1.5" style={{ backgroundColor: '#FEFCF9' }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 flex flex-col gap-1.5" style={{ backgroundColor: '#FEFCF9' }}>
         {loading && (
           <div className="flex items-center justify-center h-full">
             <div className="w-7 h-7 border-2 border-[#E8E4DE] border-t-[#A0856C] rounded-full animate-spin" />

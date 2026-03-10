@@ -93,7 +93,7 @@ export function AppPage() {
       </div>
 
       {/* Chat area */}
-      <div className={`flex-1 flex flex-col ${!showSidebar || activeConversation ? 'flex' : 'hidden md:flex'}`}>
+      <div className={`flex-1 min-w-0 flex flex-col ${!showSidebar || activeConversation ? 'flex' : 'hidden md:flex'}`}>
         <AnimatePresence mode="wait">
           {activeConversation ? (
             <motion.div
