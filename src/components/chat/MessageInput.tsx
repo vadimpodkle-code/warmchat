@@ -163,8 +163,8 @@ export function MessageInput({ conversationId, currentUserId, onSend, onSendFile
           </button>
         </div>
 
-        {/* Text input + send button together — no gap/border between them */}
-        <div className="flex-1 relative">
+        {/* Text input + send button — single unified container, no gap */}
+        <div className="flex-1 flex items-end rounded-2xl border border-[#E8E4DE] bg-[#FEFCF9] focus-within:ring-2 focus-within:ring-[#A0856C]/30 focus-within:border-[#A0856C] transition-all">
           <textarea
             ref={textareaRef}
             value={text}
@@ -172,7 +172,7 @@ export function MessageInput({ conversationId, currentUserId, onSend, onSendFile
             onKeyDown={handleKeyDown}
             placeholder="Написать сообщение..."
             rows={1}
-            className="w-full resize-none rounded-2xl border border-[#E8E4DE] bg-[#FEFCF9] pl-4 pr-12 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#B0A8A0] focus:outline-none focus:ring-2 focus:ring-[#A0856C]/30 focus:border-[#A0856C] transition-all leading-relaxed"
+            className="flex-1 resize-none bg-transparent pl-4 pr-2 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#B0A8A0] focus:outline-none leading-relaxed"
             style={{ minHeight: '42px', maxHeight: '120px', overflowY: 'auto' }}
           />
           <motion.button
@@ -180,7 +180,7 @@ export function MessageInput({ conversationId, currentUserId, onSend, onSendFile
             disabled={!canSend}
             animate={{ scale: canSend ? 1 : 0.85, opacity: canSend ? 1 : 0.4 }}
             whileTap={{ scale: 0.9 }}
-            className="absolute right-[5px] bottom-[3px] w-9 h-9 rounded-xl bg-[#A0856C] flex items-center justify-center text-white hover:bg-[#8C7262] transition-colors disabled:pointer-events-none"
+            className="flex-shrink-0 m-[3px] w-9 h-9 rounded-xl bg-[#A0856C] flex items-center justify-center text-white hover:bg-[#8C7262] transition-colors disabled:pointer-events-none"
           >
             {sending ? (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
